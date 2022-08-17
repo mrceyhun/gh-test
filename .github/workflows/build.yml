@@ -17,7 +17,7 @@ jobs:
     - id: step1
       run: |
         # Firstly get tag commit message and put it into environment variables
-        echo "$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)"
+        GITHUB_TAG_MSG="$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)"
         echo "Tag message:" $GITHUB_TAG_MSG
         echo "::set-output name=tag_msg::${GITHUB_TAG_MSG}"
         if [[ "Build docker images" == "$GITHUB_TAG_MSG"* ]]; then
@@ -33,6 +33,5 @@ jobs:
     steps:
       - name: Test
         run: |
-          echo "Tag message:" $GITHUB_TAG_MSG
-          echo "Tag message2:" ${{needs.check.outputs.tag_msg}}
+          echo "Tag message:" ${{needs.check.outputs.tag_msg}}
 
