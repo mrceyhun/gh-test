@@ -1,0 +1,17 @@
+name: Build docker images
+on:
+  push:
+    tags:
+      - '*.*.*'
+jobs:
+  build:
+    name: Build spark docker image
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - name: Get Release Notes
+        run: echo 'GITHUB_TAG_MSG=$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)' >> $GITHUB_ENV
+      - name: Test
+        run: echo $GITHUB_TAG_MSG
