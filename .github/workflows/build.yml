@@ -11,6 +11,9 @@ jobs:
       status: ${{ steps.step1.outputs.status }}
       tag_msg: ${{ steps.step1.outputs.tag_msg }}
     steps:
+    - uses: actions/checkout@v3
+      with:
+        ref: ${{ github.ref }}
     - id: step1
       run: |
         # Firstly get tag commit message and put it into environment variables
