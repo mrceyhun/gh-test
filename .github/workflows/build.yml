@@ -1,10 +1,9 @@
 # Builds and publish docker images
 #
 # !!!
-#  While creating tags, tag commit message should obey regex rule:
-#     <<<<<<<<<<     Build.*py=(.+) and date=(.+)'     >>>>>>>>>>
+#  While creating tags, tag commit message should obey these regex rules:
 # !!!
-#   "py=" value refers to "cmsmon-py" docker image tag and building the docker image with required python version 
+#   "py=" value refers to "cmsmon-py" docker image tag and building the docker image with required python version
 #   "date=" value refers to "cmsmon-hadoop-base" image tag that will be set and used in other images
 #
 name: Build docker images
@@ -16,43 +15,69 @@ jobs:
   check:
     runs-on: ubuntu-latest
     outputs:
-      status: ${{ steps.step1.outputs.status }}
-      tag_py_version: ${{ steps.step1.outputs.tag_py_version }}
-      tag_date: ${{ steps.step1.outputs.tag_date }}
+      action: ${{ steps.step1.outputs.action }}
+      docker_tag_py_version: ${{ steps.step1.outputs.tag_py_version }}
+      docker_tag_date: ${{ steps.step1.outputs.tag_date }}
+      docker_individual_images: ${{ steps.step1.outputs.individual_images }}
     steps:
-    - uses: actions/checkout@v3
-      with:
-        ref: ${{ github.ref }}
-    - id: step1
-      run: |
-        # Tag commit messages should start with
-        REGEX_TAG_COMMIT_MSG='Build.*py=(.+) and date=(.+)'
-        
-        # Firstly get tag commit message and put it into environment variables
-        GIT_TAG_MSG="$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)"
-        
-        echo "Tag message:" $GIT_TAG_MSG
-               
-        # Check tag commit message obeys regex rule
-        [[ $GIT_TAG_MSG =~ $REGEX_TAG_COMMIT_MSG ]]
-        if [[ ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
-            echo "success"
-            echo "::set-output name=status::success"
-            echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
-            echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
-        else
-            echo "failure"
-            echo "::set-output name=status::failure"
-        fi
-  build:
-    runs-on: ubuntu-latest
-    needs: check
-    if: contains(needs.check.outputs.status, 'success')
-    name: Build spark docker image
-    steps:
-      - name: Test
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+
+      - id: step1
         run: |
-          echo "Check status:" ${{needs.check.outputs.status}}
-          echo "Tag message:" ${{needs.check.outputs.tag_py_version}}
-          echo "Tag message:" ${{needs.check.outputs.tag_date}}
+          # Get tag commit message
+          GIT_TAG_MSG="$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)"
+          echo "Tag message:" $GIT_TAG_MSG
+          
+          # Tag commit messages regex rules
+          REGEX_BUILD_ALL='Build spark all.*py=(.+) and date=(.+)'
+          REGEX_BUILD_CMSMON_PY='Build spark cmsmon-py.*py=(.+)'
+          REGEX_BUILD_CMSMON_HADOOP_BASE='Build spark cmsmon-hadoop-base.*py=(.+) and date=(.+)'
+          REGEX_BUILD_INDIVIDUALS='Build spark -(.+)-.*spark3[_-]date=(.+)'
+                 
+          # Check that tag commit message obeys regex rules
+          
+          # Check all
+          [[ $GIT_TAG_MSG =~ $REGEX_BUILD_ALL ]]
+          if [[ ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
+              echo "Action: all, tag_py_version: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
+              echo "::set-output name=action::all"
+              echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
+              echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
+              exit 0
+          fi
+          
+          # Check cmsmon-py
+          [[ $GIT_TAG_MSG =~ $REGEX_BUILD_CMSMON_PY ]]
+          if [[ ! -z "${BASH_REMATCH[1]}" ]]; then
+              echo "Action: cmsmon-py, tag_py_version: ${BASH_REMATCH[1]}"
+              echo "::set-output name=action::cmsmon-py"
+              echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
+              exit 0
+          fi
+          
+          # Check cmsmon-hadoop-base
+          [[ $GIT_TAG_MSG =~ $REGEX_BUILD_CMSMON_HADOOP_BASE ]]
+          if [[ ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
+              echo "Action: cmsmon-hadoop-base, tag_py_version: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
+              echo "::set-output name=action::cmsmon-hadoop-base"
+              echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
+              echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
+              exit 0
+          fi
+          
+          # Check individuals
+          [[ $GIT_TAG_MSG =~ $REGEX_BUILD_INDIVIDUALS ]]
+          if [[ ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
+              echo "Action: individuals, individual_images: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
+              echo "::set-output name=action::individuals"
+              echo "::set-output name=individual_images::${BASH_REMATCH[1]}"
+              echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
+              exit 0
+          fi
+          
+          # Fail message
+          echo "failure"
+          echo "::set-output name=action::fail"
 
