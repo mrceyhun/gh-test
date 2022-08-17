@@ -37,7 +37,7 @@ jobs:
           REGEX_BUILD_INDIVIDUALS='Build spark -(.+)-.*spark3[_-]date=(.+)'
                  
           # Check that tag commit message obeys regex rules
-          
+ 
           # Check all
           [[ $GIT_TAG_MSG =~ $REGEX_BUILD_ALL ]]
           if [[ ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
@@ -47,16 +47,16 @@ jobs:
               echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
               exit 0
           fi
-          
+
           # Check cmsmon-py
           [[ $GIT_TAG_MSG =~ $REGEX_BUILD_CMSMON_PY ]]
-          if [ ! -z "${BASH_REMATCH[1]}" ]; then
+          if [[ ! -z "${BASH_REMATCH[1]}" ]]; then
               echo "Action: cmsmon-py, tag_py_version: ${BASH_REMATCH[1]}"
               echo "::set-output name=action::cmsmon-py"
               echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
               exit 0
           fi
-          
+
           # Check cmsmon-hadoop-base
           [[ $GIT_TAG_MSG =~ $REGEX_BUILD_CMSMON_HADOOP_BASE ]]
           if [[ ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
@@ -66,7 +66,7 @@ jobs:
               echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
               exit 0
           fi
-          
+
           # Check individuals
           [[ $GIT_TAG_MSG =~ $REGEX_BUILD_INDIVIDUALS ]]
           if [[ ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
@@ -79,5 +79,4 @@ jobs:
           
           # Fail message
           echo "failure"
-          echo "::set-output name=action::fail"
 
