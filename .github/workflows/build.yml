@@ -28,10 +28,11 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: check
-    #if: !contains(needs.check.outputs.status, 'failure')
+    if: !contains(needs.check.outputs.status, 'failure')
     name: Build spark docker image
     steps:
       - name: Test
         run: |
+          echo "Check status:" ${{needs.check.outputs.status}}
           echo "Tag message:" ${{needs.check.outputs.tag_msg}}
 
