@@ -12,6 +12,6 @@ jobs:
         with:
           ref: ${{ github.ref }}
       - name: Get Release Notes
-        run: echo 'GITHUB_TAG_MSG=$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)' >> $GITHUB_ENV
+        run: echo "GITHUB_TAG_MSG=$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)" >> $GITHUB_ENV
       - name: Test
         run: echo $GITHUB_TAG_MSG
