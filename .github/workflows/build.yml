@@ -50,7 +50,7 @@ jobs:
           
           # Check cmsmon-py
           [[ $GIT_TAG_MSG =~ $REGEX_BUILD_CMSMON_PY ]]
-          if [[ ! -z "${BASH_REMATCH[1]}" ]]; then
+          if [ ! -z "${BASH_REMATCH[1]}" ]; then
               echo "Action: cmsmon-py, tag_py_version: ${BASH_REMATCH[1]}"
               echo "::set-output name=action::cmsmon-py"
               echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
