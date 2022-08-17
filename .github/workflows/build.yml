@@ -1,4 +1,12 @@
 # Builds and publish docker images
+#
+# !!!
+#  While creating tags, tag commit message should obey regex rule:
+#     <<<<<<<<<<     Build.*py=(.+) and date=(.+)'     >>>>>>>>>>
+# !!!
+#   "py=" value refers to "cmsmon-py" docker image tag and building the docker image with required python version 
+#   "date=" value refers to "cmsmon-hadoop-base" image tag that will be set and used in other images
+#
 name: Build docker images
 on:
   push:
@@ -9,21 +17,29 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       status: ${{ steps.step1.outputs.status }}
-      tag_msg: ${{ steps.step1.outputs.tag_msg }}
+      tag_py_version: ${{ steps.step1.outputs.tag_py_version }}
+      tag_date: ${{ steps.step1.outputs.tag_date }}
     steps:
     - uses: actions/checkout@v3
       with:
         ref: ${{ github.ref }}
     - id: step1
       run: |
-        TAG_COMMIT_MSG_SHOULD_START_WITH="Build docker images"
+        # Tag commit messages should start with
+        REGEX_TAG_COMMIT_MSG='Build.*py=(.+) and date=(.+)'
+        
         # Firstly get tag commit message and put it into environment variables
         GIT_TAG_MSG="$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)"
-        echo "Tag message:" $GITHUB_TAG_MSG
-        echo "::set-output name=tag_msg::${GITHUB_TAG_MSG}"
-        if [[ $GIT_TAG_MSG == *"$TAG_COMMIT_MSG_SHOULD_START_WITH"* ]]; then
+        
+        echo "Tag message:" $GIT_TAG_MSG
+               
+        # Check tag commit message obeys regex rule
+        [[ $GIT_TAG_MSG =~ $REGEX_TAG_COMMIT_MSG ]]
+        if [[ ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
             echo "success"
             echo "::set-output name=status::success"
+            echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
+            echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
         else
             echo "failure"
             echo "::set-output name=status::failure"
@@ -37,5 +53,6 @@ jobs:
       - name: Test
         run: |
           echo "Check status:" ${{needs.check.outputs.status}}
-          echo "Tag message:" ${{needs.check.outputs.tag_msg}}
+          echo "Tag message:" ${{needs.check.outputs.tag_py_version}}
+          echo "Tag message:" ${{needs.check.outputs.tag_date}}
 
