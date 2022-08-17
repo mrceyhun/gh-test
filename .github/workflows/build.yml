@@ -20,7 +20,7 @@ jobs:
         GITHUB_TAG_MSG="$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)"
         echo "Tag message:" $GITHUB_TAG_MSG
         echo "::set-output name=tag_msg::${GITHUB_TAG_MSG}"
-        if [[ "Build docker images" == "$GITHUB_TAG_MSG"* ]]; then
+        if [[ "Build docker images" == *"$GITHUB_TAG_MSG"* ]]; then
             echo "::set-output name=status::success"
         else
             echo "::set-output name=status::failure"
@@ -28,7 +28,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     needs: check
-    if: contains(needs.check.outputs.status, 'success')
+    #if: contains(needs.check.outputs.status, 'success')
     name: Build spark docker image
     steps:
       - name: Test
