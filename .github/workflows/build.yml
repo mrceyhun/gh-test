@@ -1,18 +1,11 @@
-# Builds and publish docker images
-#
-# !!!
-#  While creating tags, tag commit message should obey these regex rules:
-# !!!
-#   "py=" value refers to "cmsmon-py" docker image tag and building the docker image with required python version
-#   "date=" value refers to "cmsmon-hadoop-base" image tag that will be set and used in other images
-#
+# Builds and publish spark/hadoop docker images
 name: Build docker images
 on:
   push:
     tags:
       - 'v*.*.*'
 jobs:
-  check:
+  init-job:
     runs-on: ubuntu-latest
     outputs:
       git_tag: ${{ steps.step1.outputs.git_tag }}
@@ -82,19 +75,17 @@ jobs:
 
   build-cmsmon-py:
     runs-on: ubuntu-latest
-    needs: check
-    if: ${{ (needs.check.outputs.action == 'all') || (needs.check.outputs.action == 'cmsmon-py') }}
+    needs: init-job
+    if: ${{ (needs.init-job.outputs.action == 'all') || (needs.init-job.outputs.action == 'cmsmon-py') }}
     name: Build cmsmon-py
     steps:
       - uses: actions/checkout@v3
         with:
           ref: ${{ github.ref }}
-      - name: Build cmsmon-py image
+      - name: Get cmsmon-py Dockerfile
         run: |
-          echo PY_VERSION: ${{ needs.check.outputs.docker_tag_py_version }}
+          echo PY_VERSION: ${{ needs.init-job.outputs.docker_tag_py_version }}
           curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-py/Dockerfile 
-          #docker build . --build-arg PY_VERSION="$PY_VERSION" --tag docker.pkg.github.com/dmwm/cmsmon-py/cmsmon-py
-          #docker tag docker.pkg.github.com/dmwm/cmsmon-py/cmsmon-py registry.cern.ch/cmsmonitoring/cmsmon-py
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
         with:
@@ -108,5 +99,124 @@ jobs:
           file: ./Dockerfile
           push: true
           build-args: |
-            PY_VERSION=${{ needs.check.outputs.docker_tag_py_version }}
-          tags: registry.cern.ch/cmsmonitoring/cmsmon-py:${{ needs.check.outputs.docker_tag_py_version }}
+            PY_VERSION=${{ needs.init-job.outputs.docker_tag_py_version }}
+          tags: registry.cern.ch/cmsmonitoring/cmsmon-py:${{ needs.init-job.outputs.docker_tag_py_version }}
+
+  build-cmsmon-hadoop-base:
+    runs-on: ubuntu-latest
+    needs: init-job
+    if: ${{ (needs.init-job.outputs.action == 'all') || (needs.init-job.outputs.action == 'cmsmon-hadoop-base') }}
+    name: Build cmsmon-hadoop-base
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - name: Get cmsmon-hadoop-base spark3 Dockerfile
+        run: |
+          echo PY_VERSION: ${{ needs.init-job.outputs.docker_tag_py_version }}
+          echo DATE_TAG: ${{ needs.init-job.outputs.docker_tag_date }}
+          # Download as Dockerfile
+          curl -ksL -o Dockerfile https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-hadoop-base/Dockerfile-spark3 
+      - name: Login to registry.cern.ch
+        uses: docker/login-action@v1
+        with:
+          registry: registry.cern.ch
+          username: ${{ secrets.CERN_LOGIN }}
+          password: ${{ secrets.CERN_TOKEN }}
+      - name: Publish cmsmon-hadoop-base image to registry.cern.ch
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            PY_VERSION=${{ needs.init-job.outputs.docker_tag_py_version }}
+          tags: registry.cern.ch/cmsmonitoring/cmsmon-hadoop-base:spark3-${{ needs.init-job.outputs.docker_tag_date }}
+
+  build-cmsmon-rucio-ds:
+    runs-on: ubuntu-latest
+    needs: init-job
+    if: ${{ (needs.init-job.outputs.action == 'all') || (contains(needs.init-job.outputs.docker_individual_images, 'cmsmon-rucio-ds') }}
+    name: Build cmsmon-rucio-ds
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - name: Get cmsmon-rucio-ds Dockerfile
+        run: |
+          echo DATE_TAG: ${{ needs.init-job.outputs.docker_tag_date }}
+          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-rucio-ds/Dockerfile
+      - name: Login to registry.cern.ch
+        uses: docker/login-action@v1
+        with:
+          registry: registry.cern.ch
+          username: ${{ secrets.CERN_LOGIN }}
+          password: ${{ secrets.CERN_TOKEN }}
+      - name: Publish cmsmon-rucio-ds image to registry.cern.ch
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.docker_tag_date }}
+          tags: registry.cern.ch/cmsmonitoring/cmsmon-rucio-ds:${{ needs.init-job.outputs.git_tag }}
+
+  build-condor-cpu-eff:
+    runs-on: ubuntu-latest
+    needs: init-job
+    if: ${{ (needs.init-job.outputs.action == 'all') || (contains(needs.init-job.outputs.docker_individual_images, 'condor-cpu-eff') }}
+    name: Build condor-cpu-eff
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - name: Get condor-cpu-eff Dockerfile
+        run: |
+          echo DATE_TAG: ${{ needs.init-job.outputs.docker_tag_date }}
+          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/condor-cpu-eff/Dockerfile
+      - name: Login to registry.cern.ch
+        uses: docker/login-action@v1
+        with:
+          registry: registry.cern.ch
+          username: ${{ secrets.CERN_LOGIN }}
+          password: ${{ secrets.CERN_TOKEN }}
+      - name: Publish condor-cpu-eff image to registry.cern.ch
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.docker_tag_date }}
+          tags: registry.cern.ch/cmsmonitoring/condor-cpu-eff:${{ needs.init-job.outputs.git_tag }}
+
+  build-cmsmon-rucio-spark2mng:
+    runs-on: ubuntu-latest
+    needs: init-job
+    if: ${{ (needs.init-job.outputs.action == 'all') || (contains(needs.init-job.outputs.docker_individual_images, 'cmsmon-rucio-spark2mng') }}
+    name: Build cmsmon-rucio-spark2mng
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - name: Get cmsmon-rucio-spark2mng Dockerfile
+        run: |
+          echo DATE_TAG: ${{ needs.init-job.outputs.docker_tag_date }}
+          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-rucio-spark2mng/Dockerfile
+      - name: Login to registry.cern.ch
+        uses: docker/login-action@v1
+        with:
+          registry: registry.cern.ch
+          username: ${{ secrets.CERN_LOGIN }}
+          password: ${{ secrets.CERN_TOKEN }}
+      - name: Publish cmsmon-rucio-spark2mng image to registry.cern.ch
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          build-args: |
+            SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.docker_tag_date }}
+          tags: registry.cern.ch/cmsmonitoring/cmsmon-rucio-spark2mng:${{ needs.init-job.outputs.git_tag }}
+
