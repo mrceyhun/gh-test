@@ -26,7 +26,7 @@ jobs:
             echo "failure"
             exit 1
           fi
-  build:
+  work:
     needs: check
     if: !contains(needs.check.outputs.status, 'failure')
     name: Build spark docker image
@@ -35,3 +35,4 @@ jobs:
       - name: Test
         run: |
           echo "Tag message:" $GITHUB_TAG_MSG
+
