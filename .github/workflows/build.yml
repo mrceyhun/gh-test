@@ -1,36 +1,17 @@
-# Builds and publish docker images
-name: Build docker images
-on:
-  push:
-    tags:
-      - 'v*.*.*'
 jobs:
-  check:
+  job1:
     runs-on: ubuntu-latest
+    # Map a step output to a job output
     outputs:
-      status: ${{ steps.early.outputs.status }}
+      output1: ${{ steps.step1.outputs.test }}
+      output2: ${{ steps.step2.outputs.test }}
     steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.ref }}
-      - id: early
-        name: Early exit
-        run: |
-          # Firstly get tag commit message and put it into environment variables
-          echo 'GITHUB_TAG_MSG=$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)' >> $GITHUB_ENV
-          echo "Tag message:" $GITHUB_TAG_MSG
-          if [[ "Build docker images" == "$GITHUB_TAG_MSG"* ]]; then
-            echo "::set-output name=status::success"
-          else
-            echo "::set-output name=status::failure"
-          fi
-  build:
+    - id: step1
+      run: echo "::set-output name=test::hello"
+    - id: step2
+      run: echo "::set-output name=test::world"
+  job2:
     runs-on: ubuntu-latest
-    needs: check
-    if: !contains(needs.check.outputs.status, 'failure')
-    name: Build spark docker image
+    needs: job1
     steps:
-      - name: Test
-        run: |
-          echo "Tag message:" $GITHUB_TAG_MSG
-
+    - run: echo ${{needs.job1.outputs.output1}} ${{needs.job1.outputs.output2}}
