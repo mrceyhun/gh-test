@@ -91,11 +91,10 @@ jobs:
           ref: ${{ github.ref }}
       - name: Build cmsmon-py image
         run: |
-          PY_VERSION=${{ needs.check.outputs.docker_tag_py_version }}
-          echo "PY_VERSION: ${PY_VERSION}"
+          echo PY_VERSION: ${{ needs.check.outputs.docker_tag_py_version }}
           curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-py/Dockerfile 
-          docker build . --build-arg PY_VERSION="$PY_VERSION" --tag docker.pkg.github.com/dmwm/cmsmon-py/cmsmon-py
-          docker tag docker.pkg.github.com/dmwm/cmsmon-py/cmsmon-py registry.cern.ch/cmsmonitoring/cmsmon-py
+          #docker build . --build-arg PY_VERSION="$PY_VERSION" --tag docker.pkg.github.com/dmwm/cmsmon-py/cmsmon-py
+          #docker tag docker.pkg.github.com/dmwm/cmsmon-py/cmsmon-py registry.cern.ch/cmsmonitoring/cmsmon-py
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
         with:
@@ -108,5 +107,6 @@ jobs:
           context: ./
           file: ./Dockerfile
           push: true
+          build-args: |
+            PY_VERSION=${{ needs.check.outputs.docker_tag_py_version }}
           tags: registry.cern.ch/cmsmonitoring/cmsmon-py:${{ needs.check.outputs.docker_tag_py_version }}
-
