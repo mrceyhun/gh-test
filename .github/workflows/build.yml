@@ -15,6 +15,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     outputs:
+      git_tag: ${{ steps.step1.outputs.git_tag }}
       action: ${{ steps.step1.outputs.action }}
       docker_tag_py_version: ${{ steps.step1.outputs.tag_py_version }}
       docker_tag_date: ${{ steps.step1.outputs.tag_date }}
@@ -26,6 +27,9 @@ jobs:
 
       - id: step1
         run: |
+          # Get git tag
+          echo "::set-output name=git_tag::${GITHUB_REF/refs\/tags\//}"
+          
           # Get tag commit message
           GIT_TAG_MSG="$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)"
           echo "Tag message:" $GIT_TAG_MSG
@@ -75,4 +79,34 @@ jobs:
           
           # Fail message
           echo "failure"
+
+  build-cmsmon-py:
+    runs-on: ubuntu-latest
+    needs: check
+    if: ${{ (needs.check.outputs.action == 'all') || (needs.check.outputs.action == 'cmsmon-py') }}
+    name: Build cmsmon-py
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - name: Build cmsmon-py image
+        run: |
+          PY_VERSION=${{ needs.check.outputs.docker_tag_py_version }}
+          echo "PY_VERSION: ${PY_VERSION}"
+          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-py/Dockerfile 
+          docker build . --build-arg PY_VERSION="$PY_VERSION" --tag docker.pkg.github.com/dmwm/cmsmon-py/cmsmon-py
+          docker tag docker.pkg.github.com/dmwm/cmsmon-py/cmsmon-py registry.cern.ch/cmsmonitoring/cmsmon-py
+      - name: Login to registry.cern.ch
+        uses: docker/login-action@v1
+        with:
+          registry: registry.cern.ch
+          username: ${{ secrets.CERN_LOGIN }}
+          password: ${{ secrets.CERN_TOKEN }}
+      - name: Publish cmsmon-py image to registry.cern.ch
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          tags: registry.cern.ch/cmsmonitoring/cmsmon-py:${{ needs.check.outputs.docker_tag_py_version }}
 
