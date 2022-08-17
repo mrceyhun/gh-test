@@ -8,7 +8,7 @@ jobs:
   check:
     runs-on: ubuntu-latest
     outputs:
-      status: ${{ steps.early.conclusion }}
+      status: ${{ steps.early.outputs.status }}
     steps:
       - uses: actions/checkout@v3
         with:
@@ -20,13 +20,11 @@ jobs:
           echo 'GITHUB_TAG_MSG=$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)' >> $GITHUB_ENV
           echo "Tag message:" $GITHUB_TAG_MSG
           if [[ "Build docker images" == "$GITHUB_TAG_MSG"* ]]; then
-            echo "success"
-            exit 0
+            echo "::set-output name=status::success"
           else
-            echo "failure"
-            exit 1
+            echo "::set-output name=status::failure"
           fi
-  work:
+  build:
     runs-on: ubuntu-latest
     needs: check
     if: !contains(needs.check.outputs.status, 'failure')
