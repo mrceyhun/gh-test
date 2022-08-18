@@ -116,8 +116,7 @@ jobs:
           echo PY_VERSION: ${{ needs.init-job.outputs.docker_tag_py_version }}
           echo DATE_TAG: ${{ needs.init-job.outputs.docker_tag_date }}
           # Download folder since all the files should exist in the context
-          curl -L https://api.github.com/repos/mrceyhun/CMSKubernetes/tarball/f-deploy-update | tar xvz --wildcards */docker/cmsmon-hadoop-base/* 
---strip-components 3 -C .
+          curl -L https://api.github.com/repos/mrceyhun/CMSKubernetes/tarball/f-deploy-update | tar xvz --wildcards */docker/cmsmon-hadoop-base/* --strip-components 3 -C .
           cp Dockerfile-spark3 Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
