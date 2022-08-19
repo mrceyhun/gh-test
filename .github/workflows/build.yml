@@ -36,7 +36,7 @@ jobs:
           # Check that tag commit message obeys regex rules
  
           # Check all
-          if [[ $GIT_TAG_MSG =~ '${{env.REGEX_BUILD_ALL}}' && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
+          if [[ $GIT_TAG_MSG =~ "${{env.REGEX_BUILD_ALL}}" && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
               echo "Action: all, tag_py_version: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
               echo "::set-output name=action::all"
               echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
@@ -45,7 +45,7 @@ jobs:
           fi
 
           # Check cmsmon-py
-          if [[ $GIT_TAG_MSG =~ '${{env.REGEX_BUILD_CMSMON_PY}}' && ! -z "${BASH_REMATCH[1]}" ]]; then
+          if [[ $GIT_TAG_MSG =~ "${{env.REGEX_BUILD_CMSMON_PY}}" && ! -z "${BASH_REMATCH[1]}" ]]; then
               echo "Action: cmsmon-py, tag_py_version: ${BASH_REMATCH[1]}"
               echo "::set-output name=action::cmsmon-py"
               echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
@@ -53,7 +53,7 @@ jobs:
           fi
 
           # Check cmsmon-hadoop-base
-          if [[ $GIT_TAG_MSG =~ '${{env.REGEX_BUILD_CMSMON_HADOOP_BASE}}' && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
+          if [[ $GIT_TAG_MSG =~ "${{env.REGEX_BUILD_CMSMON_HADOOP_BASE}}" && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
               echo "Action: cmsmon-hadoop-base, tag_py_version: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
               echo "::set-output name=action::cmsmon-hadoop-base"
               echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
@@ -62,7 +62,7 @@ jobs:
           fi
 
           # Check individuals
-          if [[ $GIT_TAG_MSG =~ '${{env.REGEX_BUILD_INDIVIDUALS}}' && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
+          if [[ $GIT_TAG_MSG =~ "${{env.REGEX_BUILD_INDIVIDUALS}}" && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
               echo "Action: individuals, individual_images: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
               echo "::set-output name=action::individuals"
               echo "::set-output name=individual_images::${BASH_REMATCH[1]}"
