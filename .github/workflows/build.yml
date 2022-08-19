@@ -1,4 +1,21 @@
 # Builds and publish spark/hadoop docker images
+#  How it works:
+#    Provided git tag will be used in the CMSSpark git checkout.
+#    Git tag message will provide more interactive management of github actions.
+#    There are 2 conventions currently:
+#      1st: builds all docker images
+#      2nd: builds individual docker images
+#    Conventions and variables:
+#      - "Build docker all.*spark3[_-]date=(.+)":
+#          will build all docker images with provided "spark3[_-]date" cmsmon-hadoop-base image date tag
+#          Example: "Build docker all with spark3-date=20220819"
+#      - "Build docker [(](.+)[)].*spark3[_-]date=(.+)":
+#          will build individual docker images with "spark3[_-]date" cmsmon-hadoop-base image date tag
+#          however docker image name(s) should be provided between paranthesis.
+#          Examples:
+#            - "Build docker (cmsmon-rucio-ds) with spark3-date=20220819"
+#            - "Build docker (cmsmon-rucio-spark2mng, condor-cpu-eff) with spark3-date=20220819"
+
 name: Build docker images
 on:
   push:
@@ -11,8 +28,7 @@ jobs:
     outputs:
       git_tag: ${{ steps.step1.outputs.git_tag }}
       action: ${{ steps.step1.outputs.action }}
-      docker_tag_py_version: ${{ steps.step1.outputs.tag_py_version }}
-      docker_tag_date: ${{ steps.step1.outputs.tag_date }}
+      spark3_date: ${{ steps.step1.outputs.spark3_date }}
       docker_individual_images: ${{ steps.step1.outputs.individual_images }}
     steps:
       - uses: actions/checkout@v3
@@ -21,119 +37,38 @@ jobs:
 
       - id: step1
         run: |
-          # Get git tag
+          # Define git tag commit message regex rules that users should obey to use functionalities
+          REGEX_BUILD_ALL='Build docker all.*spark3[_-]date=(.+)'
+          REGEX_BUILD_INDIVIDUALS='Build docker [(](.+)[)].*spark3[_-]date=(.+)'
+          
+          # Get git tag and set as "git_tag" variable
           echo "::set-output name=git_tag::${GITHUB_REF/refs\/tags\//}"
           
           # Get tag commit message
           GIT_TAG_MSG="$(git tag -l --format="%(contents)" $GITHUB_REF_NAME)"
           echo "Tag message:" $GIT_TAG_MSG
-          
-          # Define git tag commit message regex rules that users should obey to use functionalities
-          REGEX_BUILD_ALL='Build spark all.*py=(.+) and date=(.+)'
-          REGEX_BUILD_CMSMON_PY='Build spark cmsmon-py.*py=(.+)'
-          REGEX_BUILD_CMSMON_HADOOP_BASE='Build spark cmsmon-hadoop-base.*py=(.+) and date=(.+)'
-          REGEX_BUILD_INDIVIDUALS='Build spark -(.+)-.*spark3[_-]date=(.+)'
                  
           # Check that tag commit message obeys regex rules
  
           # Check all
-          if [[ $GIT_TAG_MSG =~ $REGEX_BUILD_ALL && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
-              echo "Action: all, tag_py_version: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
+          if [[ $GIT_TAG_MSG =~ $REGEX_BUILD_ALL && ! -z "${BASH_REMATCH[1]}" ]]; then
+              echo "Action: all, spark3_date: ${BASH_REMATCH[1]}"
               echo "::set-output name=action::all"
-              echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
-              echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
-              exit 0
-          fi
-
-          # Check cmsmon-py
-          if [[ $GIT_TAG_MSG =~ $REGEX_BUILD_CMSMON_PY && ! -z "${BASH_REMATCH[1]}" ]]; then
-              echo "Action: cmsmon-py, tag_py_version: ${BASH_REMATCH[1]}"
-              echo "::set-output name=action::cmsmon-py"
-              echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
-              exit 0
-          fi
-
-          # Check cmsmon-hadoop-base
-          if [[ $GIT_TAG_MSG =~ $REGEX_BUILD_CMSMON_HADOOP_BASE && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
-              echo "Action: cmsmon-hadoop-base, tag_py_version: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
-              echo "::set-output name=action::cmsmon-hadoop-base"
-              echo "::set-output name=tag_py_version::${BASH_REMATCH[1]}"
-              echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
+              echo "::set-output name=spark3_date::${BASH_REMATCH[1]}"
               exit 0
           fi
 
           # Check individuals
           if [[ $GIT_TAG_MSG =~ $REGEX_BUILD_INDIVIDUALS && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
-              echo "Action: individuals, individual_images: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
+              echo "Action: individuals, individual_images: ${BASH_REMATCH[1]}, spark3_date: ${BASH_REMATCH[2]}"
               echo "::set-output name=action::individuals"
               echo "::set-output name=individual_images::${BASH_REMATCH[1]}"
-              echo "::set-output name=tag_date::${BASH_REMATCH[2]}"
+              echo "::set-output name=spark3_date::${BASH_REMATCH[2]}"
               exit 0
           fi
           
           # Fail message
           echo "failure"
-
-  build-cmsmon-py:
-    runs-on: ubuntu-latest
-    needs: init-job
-    if: ${{ (needs.init-job.outputs.action == 'all') || (needs.init-job.outputs.action == 'cmsmon-py') }}
-    name: Build cmsmon-py
-    steps:
-      - uses: actions/checkout@v3
-        with:
-          ref: ${{ github.ref }}
-      - name: Get cmsmon-py Dockerfile
-        run: |
-          echo PY_VERSION: ${{ needs.init-job.outputs.docker_tag_py_version }}
-          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-py/Dockerfile
-      - name: Login to registry.cern.ch
-        uses: docker/login-action@v1
-        with:
-          registry: registry.cern.ch
-          username: ${{ secrets.CERN_LOGIN }}
-          password: ${{ secrets.CERN_TOKEN }}
-      - name: Publish cmsmon-py image to registry.cern.ch
-        uses: docker/build-push-action@v2
-        with:
-          context: ./
-          file: ./Dockerfile
-          push: true
-          build-args: |
-            PY_VERSION=${{ needs.init-job.outputs.docker_tag_py_version }}
-          tags: registry.cern.ch/cmsmonitoring/cmsmon-py:${{ needs.init-job.outputs.docker_tag_py_version }}
-
-#  build-cmsmon-hadoop-base:
-#    runs-on: ubuntu-latest
-#    needs: init-job
-#    if: ${{ (needs.init-job.outputs.action == 'all') || (needs.init-job.outputs.action == 'cmsmon-hadoop-base') }}
-#    name: Build cmsmon-hadoop-base
-#    steps:
-#      - uses: actions/checkout@v3
-#        with:
-#          ref: ${{ github.ref }}
-#      - name: Get cmsmon-hadoop-base spark3 Dockerfile
-#        run: |
-#          echo PY_VERSION: ${{ needs.init-job.outputs.docker_tag_py_version }}
-#          echo DATE_TAG: ${{ needs.init-job.outputs.docker_tag_date }}
-#          # Download folder since all the files should exist in the context
-#          curl -L https://api.github.com/repos/mrceyhun/CMSKubernetes/tarball/f-deploy-update | tar xvz --wildcards */docker/cmsmon-hadoop-base/* --strip-components 3 -C .
-#          cp Dockerfile-spark3 Dockerfile
-#      - name: Login to registry.cern.ch
-#        uses: docker/login-action@v1
-#        with:
-#          registry: registry.cern.ch
-#          username: ${{ secrets.CERN_LOGIN }}
-#          password: ${{ secrets.CERN_TOKEN }}
-#      - name: Publish cmsmon-hadoop-base image to registry.cern.ch
-#        uses: docker/build-push-action@v2
-#        with:
-#          context: ./
-#          file: ./Dockerfile
-#          push: true
-#          build-args: |
-#            PY_VERSION=${{ needs.init-job.outputs.docker_tag_py_version }}
-#          tags: registry.cern.ch/cmsmonitoring/cmsmon-hadoop-base:spark3-${{ needs.init-job.outputs.docker_tag_date }}
 
   build-cmsmon-rucio-ds:
     runs-on: ubuntu-latest
@@ -146,7 +81,7 @@ jobs:
           ref: ${{ github.ref }}
       - name: Get cmsmon-rucio-ds Dockerfile
         run: |
-          echo DATE_TAG: ${{ needs.init-job.outputs.docker_tag_date }}
+          echo SPARK3_IMAGE_TAG: ${{ needs.init-job.outputs.spark3_date }}
           curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-rucio-ds/Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
@@ -161,7 +96,7 @@ jobs:
           file: ./Dockerfile
           push: true
           build-args: |
-            SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.docker_tag_date }}
+            SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.spark3_date }}
             CMSSPARK_TAG=${{ needs.init-job.outputs.git_tag }}
           tags: registry.cern.ch/cmsmonitoring/cmsmon-rucio-ds:${{ needs.init-job.outputs.git_tag }}
 
@@ -176,7 +111,7 @@ jobs:
           ref: ${{ github.ref }}
       - name: Get condor-cpu-eff Dockerfile
         run: |
-          echo DATE_TAG: ${{ needs.init-job.outputs.docker_tag_date }}
+          echo SPARK3_IMAGE_TAG: ${{ needs.init-job.outputs.spark3_date }}
           curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/condor-cpu-eff/Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
@@ -191,7 +126,7 @@ jobs:
           file: ./Dockerfile
           push: true
           build-args: |
-            SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.docker_tag_date }}
+            SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.spark3_date }}
             CMSSPARK_TAG=${{ needs.init-job.outputs.git_tag }}
           tags: registry.cern.ch/cmsmonitoring/condor-cpu-eff:${{ needs.init-job.outputs.git_tag }}
 
@@ -206,7 +141,7 @@ jobs:
           ref: ${{ github.ref }}
       - name: Get cmsmon-rucio-spark2mng Dockerfile
         run: |
-          echo DATE_TAG: ${{ needs.init-job.outputs.docker_tag_date }}
+          echo SPARK3_IMAGE_TAG: ${{ needs.init-job.outputs.spark3_date }}
           curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-rucio-spark2mng/Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
@@ -221,7 +156,7 @@ jobs:
           file: ./Dockerfile
           push: true
           build-args: |
-            SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.docker_tag_date }}
+            SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.spark3_date }}
             CMSSPARK_TAG=${{ needs.init-job.outputs.git_tag }}
           tags: registry.cern.ch/cmsmonitoring/cmsmon-rucio-spark2mng:${{ needs.init-job.outputs.git_tag }}
 
