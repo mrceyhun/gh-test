@@ -6,10 +6,10 @@ on:
       - 'v*.*.*'
 env:
   # Define git tag commit message regex rules that users should obey to use functionalities
-  REGEX_BUILD_ALL: 'Build spark all.*py=(.+) and date=(.+)'
-  REGEX_BUILD_CMSMON_PY: 'Build spark cmsmon-py.*py=(.+)'
-  REGEX_BUILD_CMSMON_HADOOP_BASE: 'Build spark cmsmon-hadoop-base.*py=(.+) and date=(.+)'
-  REGEX_BUILD_INDIVIDUALS: 'Build spark -(.+)-.*spark3[_-]date=(.+)'
+  REGEX_BUILD_ALL: Build spark all.*py=(.+) and date=(.+)
+  REGEX_BUILD_CMSMON_PY: Build spark cmsmon-py.*py=(.+)
+  REGEX_BUILD_CMSMON_HADOOP_BASE: Build spark cmsmon-hadoop-base.*py=(.+) and date=(.+)
+  REGEX_BUILD_INDIVIDUALS: Build spark -(.+)-.*spark3[_-]date=(.+)
 jobs:
   init-job:
     runs-on: ubuntu-latest
@@ -36,6 +36,8 @@ jobs:
           # Check that tag commit message obeys regex rules
  
           # Check all
+          echo "${{env.REGEX_BUILD_ALL}}"
+          echo '"${{env.REGEX_BUILD_ALL}}"'
           if [[ $GIT_TAG_MSG =~ "${{env.REGEX_BUILD_ALL}}" && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
               echo "Action: all, tag_py_version: ${BASH_REMATCH[1]}, tag_date: ${BASH_REMATCH[2]}"
               echo "::set-output name=action::all"
