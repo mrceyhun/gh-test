@@ -162,6 +162,7 @@ jobs:
           push: true
           build-args: |
             SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.docker_tag_date }}
+            CMSSPARK_TAG=${{ needs.init-job.outputs.git_tag }}
           tags: registry.cern.ch/cmsmonitoring/cmsmon-rucio-ds:${{ needs.init-job.outputs.git_tag }}
 
   build-condor-cpu-eff:
@@ -191,6 +192,7 @@ jobs:
           push: true
           build-args: |
             SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.docker_tag_date }}
+            CMSSPARK_TAG=${{ needs.init-job.outputs.git_tag }}
           tags: registry.cern.ch/cmsmonitoring/condor-cpu-eff:${{ needs.init-job.outputs.git_tag }}
 
   build-cmsmon-rucio-spark2mng:
@@ -220,5 +222,6 @@ jobs:
           push: true
           build-args: |
             SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.docker_tag_date }}
+            CMSSPARK_TAG=${{ needs.init-job.outputs.git_tag }}
           tags: registry.cern.ch/cmsmonitoring/cmsmon-rucio-spark2mng:${{ needs.init-job.outputs.git_tag }}
 
