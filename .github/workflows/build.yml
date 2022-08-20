@@ -1,7 +1,8 @@
 # Builds and publish spark/hadoop docker images
+
 #  How it works:
 #    Provided git tag will be used in the CMSSpark git checkout.
-#    Git tag message will provide more interactive management of github actions.
+#    Git tag message will provide more interactive management of GitHub actions.
 #    There are 2 conventions currently:
 #      1st: builds all docker images
 #      2nd: builds individual docker images
@@ -15,6 +16,8 @@
 #          Examples:
 #            - "Build docker (cmsmon-rucio-ds) with spark3-date=20220819"
 #            - "Build docker (cmsmon-rucio-spark2mng, condor-cpu-eff) with spark3-date=20220819"
+#  spark3-date refers to YYYYMMDD suffix of registry.cern.ch/cmsmonitoring/cmsmon-hadoop-base:spark3-YYYYMMDD image
+#    which is used as base image all docker images that we build in this workflow.
 
 name: Build docker images
 on:
@@ -39,6 +42,8 @@ jobs:
         run: |
           # Define git tag commit message regex rules that users should obey to use functionalities
           REGEX_BUILD_ALL='Build docker all.*spark3[_-]date=(.+)'
+          REGEX_BUILD_HADOOP_BASE='Build docker hadoop base'
+          #REGEX_BUILD_HADOOP_BASE='Build docker hadoop base.*date=(.+)'
           REGEX_BUILD_INDIVIDUALS='Build docker [(](.+)[)].*spark3[_-]date=(.+)'
           
           # Get git tag and set as "git_tag" variable
@@ -58,6 +63,13 @@ jobs:
               exit 0
           fi
 
+          # Check hadoop base
+          if [[ $GIT_TAG_MSG =~ $REGEX_BUILD_HADOOP_BASE ]]; then
+              echo "Action: base"
+              echo "::set-output name=action::base"
+              exit 0
+          fi
+
           # Check individuals
           if [[ $GIT_TAG_MSG =~ $REGEX_BUILD_INDIVIDUALS && ! -z "${BASH_REMATCH[1]}" && ! -z "${BASH_REMATCH[2]}" ]]; then
               echo "Action: individuals, individual_images: ${BASH_REMATCH[1]}, spark3_date: ${BASH_REMATCH[2]}"
@@ -69,6 +81,33 @@ jobs:
           
           # Fail message
           echo "failure"
+
+  build-cmsmon-hadoop-base:
+    runs-on: ubuntu-latest
+    needs: init-job
+    if: ${{ (needs.init-job.outputs.action == 'all') || (needs.init-job.outputs.action == 'base') }}
+    name: Build cmsmon-hadoop-base
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          ref: ${{ github.ref }}
+      - name: Get cmsmon-hadoop-base Dockerfile
+        run: |
+          curl -L https://api.github.com/repos/mrceyhun/CMSKubernetes/tarball/f-deploy-update | tar xvz */docker/cmsmon-hadoop-base/* --strip-components 3 -C .
+          cp Dockerfile-spark3 Dockerfile
+      - name: Login to registry.cern.ch
+        uses: docker/login-action@v1
+        with:
+          registry: registry.cern.ch
+          username: ${{ secrets.CERN_LOGIN }}
+          password: ${{ secrets.CERN_TOKEN }}
+      - name: Publish cmsmon-hadoop-base image to registry.cern.ch
+        uses: docker/build-push-action@v2
+        with:
+          context: ./
+          file: ./Dockerfile
+          push: true
+          tags: registry.cern.ch/cmsmonitoring/cmsmon-hadoop-base:test20220820
 
   build-cmsmon-rucio-ds:
     runs-on: ubuntu-latest
@@ -82,7 +121,7 @@ jobs:
       - name: Get cmsmon-rucio-ds Dockerfile
         run: |
           echo SPARK3_IMAGE_TAG: ${{ needs.init-job.outputs.spark3_date }}
-          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-rucio-ds/Dockerfile
+          curl -ksLO https://raw.githubusercontent.com/dmwm/CMSKubernetes/master/docker/cmsmon-rucio-ds/Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
         with:
@@ -112,7 +151,7 @@ jobs:
       - name: Get condor-cpu-eff Dockerfile
         run: |
           echo SPARK3_IMAGE_TAG: ${{ needs.init-job.outputs.spark3_date }}
-          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/condor-cpu-eff/Dockerfile
+          curl -ksLO https://raw.githubusercontent.com/dmwm/CMSKubernetes/master/docker/condor-cpu-eff/Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
         with:
@@ -142,7 +181,7 @@ jobs:
       - name: Get cmsmon-rucio-spark2mng Dockerfile
         run: |
           echo SPARK3_IMAGE_TAG: ${{ needs.init-job.outputs.spark3_date }}
-          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-rucio-spark2mng/Dockerfile
+          curl -ksLO https://raw.githubusercontent.com/dmwm/CMSKubernetes/master/docker/cmsmon-rucio-spark2mng/Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
         with:
@@ -159,4 +198,3 @@ jobs:
             SPARK3_IMAGE_TAG=${{ needs.init-job.outputs.spark3_date }}
             CMSSPARK_TAG=${{ needs.init-job.outputs.git_tag }}
           tags: registry.cern.ch/cmsmonitoring/cmsmon-rucio-spark2mng:${{ needs.init-job.outputs.git_tag }}
-
