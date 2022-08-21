@@ -63,7 +63,7 @@ jobs:
           ref: ${{ github.ref }}
       - name: Get cmsmon-rucio-ds Dockerfile
         run: |
-          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-rucio-ds/Dockerfile
+          curl -ksLO https://raw.githubusercontent.com/dmwm/CMSKubernetes/master/docker/cmsmon-rucio-ds/Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
         with:
@@ -91,7 +91,7 @@ jobs:
           ref: ${{ github.ref }}
       - name: Get condor-cpu-eff Dockerfile
         run: |
-          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/condor-cpu-eff/Dockerfile
+          curl -ksLO https://raw.githubusercontent.com/dmwm/CMSKubernetes/master/docker/condor-cpu-eff/Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
         with:
@@ -119,7 +119,7 @@ jobs:
           ref: ${{ github.ref }}
       - name: Get cmsmon-rucio-spark2mng Dockerfile
         run: |
-          curl -ksLO https://raw.githubusercontent.com/mrceyhun/CMSKubernetes/f-deploy-update/docker/cmsmon-rucio-spark2mng/Dockerfile
+          curl -ksLO https://raw.githubusercontent.com/dmwm/CMSKubernetes/master/docker/cmsmon-rucio-spark2mng/Dockerfile
       - name: Login to registry.cern.ch
         uses: docker/login-action@v1
         with:
