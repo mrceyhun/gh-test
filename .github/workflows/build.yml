@@ -42,9 +42,10 @@ jobs:
       - id: step1
         run: |
           # Define git tag commit message regex rules that users should obey to use functionalities
-          REGEX_BUILD_ALL='Build docker all.*py=([\d.]+).*spark3[_-]date=(.*[0-9]+)'
-          REGEX_BUILD_HADOOP_BASE='Build docker hadoop base.*py=([\d.]+).*spark3[_-]date=(.*[0-9]+)'
-          REGEX_BUILD_INDIVIDUALS='Build docker [(](.+)[)].*spark3[_-]date=(.*\d[0-9]+)'
+          #    "\d" kind regex expressions does not work!
+          REGEX_BUILD_ALL='Build docker all.*py=([.0-9]+).*spark3[_-]date=(.*[0-9]+)'
+          REGEX_BUILD_HADOOP_BASE='Build docker hadoop base.*py=([.0-9]+).*spark3[_-]date=(.*[0-9]+)'
+          REGEX_BUILD_INDIVIDUALS='Build docker [(](.+)[)].*spark3[_-]date=(.*[0-9]+)'
           
           # Get git tag and set as "git_tag" variable
           echo "::set-output name=git_tag::${GITHUB_REF/refs\/tags\//}"
